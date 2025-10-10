@@ -5,4 +5,4 @@ in einer neuen directory: $ git init
 -> arbeiten abspeichern
 -> $ git push -u origin main
 
-
+#thx
