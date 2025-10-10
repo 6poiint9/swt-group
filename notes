@@ -1,0 +1,77 @@
+Company: STC
+
+Time management:
+
+Currently:
+
+ - Decentralized via an Exel document
+
+ -> local machine, no backup, 
+
+ - every Employee enters information and after each month passed to Supervisor
+
+ - checks and hands over to HR
+
+ -> flex time account updated
+
+ vacation:
+ - employee fills a request document (with start and end date) -> sent to supervisor
+ - Supervisor accepts and sends to HR or rejects the request
+ - 30 vacation days per year but can be taken over to next year
+ - no work time captured
+ flex-time: 
+ - can add up and be used for a whole day or some hours
+ sickness:
+ - inform the HR directly (HR informs the supervisor)
+ -> no work time captured
+ Breaks:
+ - 30 or 45 min.
+ 
+ - every employee has a Laptop protected by login and use credential
+
+
+ 
+NEw:
+
+ - Centralized and captures: work time, vacation, sickness ...
+
+ sickness:
+ - registered in system by HR and supervisor gets an email notification
+ 
+ - vacation request should be covered
+
+ - employee could delete a vacation request or an approved request
+
+ - at end of the month employee registers all work times and transmit time 
+ sheet to superisor
+ - after sending times cannot be changed any more
+ - supervisor can accept and reject (with reasoning) the work -> if rejected
+ employee can request again
+
+ => employee can see own statistics: flex-time, vacations
+ - can flips through months and access work time details
+
+ => supervisor can see as well (his own and of his employees)
+ 
+ => HR for everyone and everything
+ -> and see if they work too much  (more than 10h/day)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
