@@ -6,6 +6,8 @@ in einer neuen directory:
 Wenn Ihr was berabeiten wollt
 -> $ git pull origin main --allow-unrelated-histories (immer als erstes machen!)
 -> dateien abspeichern
+-> $ git add .
+-> $ git commit -m "commentar"
 -> $ git push -u origin main
 
 #thx
