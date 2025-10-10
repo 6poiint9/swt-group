@@ -1,0 +1,8 @@
+in einer neuen directory: $ git init
+-> $ git switch -c main
+-> $ git remote add origin https://github.com/6poiint9/swt-group
+-> $ git pull origin main --allow-unrelated-histories (immer als erstes machen!)
+-> arbeiten abspeichern
+-> $ git push -u origin main
+
+
