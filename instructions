@@ -1,0 +1,74 @@
+
+--- Pulling and pushing indipendent stuff ---
+
+in a new directory: 
+-> $ git clone https://github.com/6poiint9/swt-group.git
+-> $ git config --global user.email "example@users.noreply.github.com" git config --global user.name "Your Name"
+-> $ git switch -c main 
+
+Wenn Ihr was berabeiten wollt
+-> $ git pull origin main --allow-unrelated-histories (immer als erstes machen!)
+-> dateien abspeichern
+-> $ git add .
+-> $ git commit -m "commentar"
+-> $ git push -u origin main
+
+
+--- Responsibilities ---
+
+feature/backend-auth
+- Handle login, token generation, email validation.
+
+feature/backend-db-models
+- Build & maintain database schema/models.
+
+feature/backend-calendar
+- Create API for managing calendar notes.
+
+feature/frontend-login-ui
+- Let the user log in, validate input, and store token.
+
+feature/frontend-calendar-ui
+- Show calendar UI and allow notes creation/edit/delete.
+
+
+--- collaborating on a project ---
+be up to date:
+-> $ git fetch origin
+
+be in the right branch:
+- check current branch -> $ git status 
+- switch to your designated branch -> $ git checkout branch-name
+double-check -> $ git status
+
+workflow: 
+after doing some work -> $ git add . && got commit -m "explain what done"
+before pushing run -> $ git rebase main
+push to your branch -> git push -u origin branch-name
+create a pull-request on GitHub and comment what you did 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
