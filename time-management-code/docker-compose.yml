@@ -31,3 +31,4 @@ services:
 # Definiert die "externe Festplatte" (Volume)
 volumes:
   postgres_data:
+  # :)
