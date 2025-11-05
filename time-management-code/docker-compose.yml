@@ -1,5 +1,4 @@
 # Dies ist die "Start-Anleitung" für Docker
-version: '3.8'
 
 services:
   # Definiert deinen Postgres-Datenbank-Service
