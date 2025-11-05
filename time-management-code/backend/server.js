@@ -1,5 +1,6 @@
 // 1. Express importieren (den "Werkzeugkasten" holen)
 const express = require('express');
+require('dotenv').config();
 
 // 2. Eine "App" aus Express erstellen (den Server initialisieren)
 const app = express();
