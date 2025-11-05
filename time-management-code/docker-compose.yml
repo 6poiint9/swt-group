@@ -14,7 +14,7 @@ services:
       
     # Verbindet Port 5432 deines PCs mit Port 5432 im Container
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
       
     # Hier passiert die Magie:
     volumes:
