@@ -36,17 +36,17 @@ CREATE TABLE Users (
 -- 1. Erstelle einen Supervisor (hat keinen eigenen Supervisor, daher NULL)
 INSERT INTO Users (username, passwordHash, role, supervisorID) 
 VALUES 
-('m.sonntag', 'hash_fuer_supervisor_abc123', 'Supervisor', NULL);
+('msonntag', 'hash_fuer_supervisor_abc123', 'Supervisor', NULL);
 
 -- 2. Erstelle einen Employee (sein Vorgesetzter ist User mit ID 1)
 INSERT INTO Users (username, passwordHash, role, supervisorID) 
 VALUES 
-('b.poth', 'hash_fuer_employee_xyz789', 'Employee', 1);
+('bpoth', 'hash_fuer_employee_xyz789', 'Employee', 1);
 
 -- 3. Erstelle einen HR-Mitarbeiter (hat auch keinen Supervisor in diesem Bsp.)
 INSERT INTO Users (username, passwordHash, role, supervisorID) 
 VALUES 
-('h.meier', 'hash_fuer_hr_qwert456', 'HR', NULL);
+('hmeier', 'hash_fuer_hr_qwert456', 'HR', NULL);
 
 /* ========= SCHRITT 4: RECHTE EINSCHRÄNKEN (PoLP) ========= */
 
