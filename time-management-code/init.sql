@@ -47,3 +47,18 @@ VALUES
 INSERT INTO Users (username, passwordHash, role, supervisorID) 
 VALUES 
 ('h.meier', 'hash_fuer_hr_qwert456', 'HR', NULL);
+
+/* ========= SCHRITT 4: RECHTE EINSCHRÄNKEN (PoLP) ========= */
+
+-- 1. Setzt die Rechte für alle BEREITS EXISTIERENDEN Tabellen
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO myuser;
+
+-- 2. Setzt die Standard-Rechte für alle ZUKÜNFTIGEN Tabellen
+-- Das ist der Profi-Befehl:
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO myuser;
+
+-- (Optional: Dasselbe für 'SERIAL' IDs, falls dein Backend sie braucht)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO myuser;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+   GRANT USAGE, SELECT ON SEQUENCES TO myuser;
