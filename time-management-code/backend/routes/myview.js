@@ -8,7 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 // (Hier kommen gleich unsere Endpunkte hin)
-router.get('/myview', (req, res) => {
+router.get('/myview', checkAuth, (req, res) => {
 
   try {
     // --- HIER IST DER ZUGRIFF ---
