@@ -50,13 +50,26 @@
     border: none;
     outline: none;
     color: #797979;
-    forn-size: 14px;
+    font-size: 14px;
 }
 
 .submit-container{
     display: flex;
     gap:30px;
     margin: 60px auto;
+}
+
+.submit{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    Height: 45px;
+    color: #fff;
+    background: gray ;
+    border-radius: 50px;
+    font-size: 19px;
+    font-weight: 700;
 }
 
 .submit{

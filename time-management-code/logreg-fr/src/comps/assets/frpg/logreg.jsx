@@ -24,6 +24,11 @@ const logreg = () => {
             </div>
             <div className="submit-container">
                 <div className="submit">Login</div>
+                <button onclick="window.location.href='//api/authinticateUser'">Login</button>
+            </div>
+            <div className="submit-container">
+                <div classname="submit">Change Password</div>
+                <button onclick="window.location.href='/changePassword'">Go to Endpoint</button>
             </div>
         </div>
     )
