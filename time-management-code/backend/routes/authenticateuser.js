@@ -16,7 +16,7 @@ router.post('/login',parsInput,  async (req, res) => {
     await authservice.validatePassword(username, password);
 
     // Success: return token
-    const token = createToken(user);
+    const token = createToken.generateToken(user);
     res.json({ success: true, token, username: user.username });
   } catch (err) {
     console.error('Login error:', err);
