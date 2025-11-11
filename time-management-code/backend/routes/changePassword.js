@@ -3,17 +3,18 @@ const checkauth = require('/middleware/checkauth');
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
+const authservice = require('../utils/validatePwd')
 
 router.get('/changepassword'), Parser, async (req,res) => {
 
     try {
-    const userId = req.userData.userId;
-    const {oldPassword, newPasswordOne, newPasswordTwo} = req.body;
 
-    const user = await authservice.authenticateUser(username, oldPassword);
+    const {username, oldPassword, newPasswordOne, newPasswordTwo} = req.body;
+
+    if(await authservice.validatePassword(username, oldPassword)){
 
     if (newPasswordOne != newPasswordTwo){
-         return res.status(400).json({message: "Die Beiden neuen Passwörter stimmen nicht überein."})}
+    return res.status(400).json({message: "Die Beiden neuen Passwörter stimmen nicht überein."})}
 
     if (newPasswordOne < 10)
     {
@@ -25,9 +26,14 @@ router.get('/changepassword'), Parser, async (req,res) => {
     } else {
         return res.status(500).json({message: "Fehler beim Ändern des Passworts!"})
     }
+    }
+
+   
 
     } catch (error) {
        return res.status(400).json({message: error.message});
     }
 
 }
+
+module.exports = router;
