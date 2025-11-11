@@ -8,7 +8,7 @@ const createToken = require('../utils/createToken');
 const router = express.Router();
 
 // POST /api/login
-router.post('/login', async (req, res) => {
+router.post('/login',  async (req, res) => {
   try {
     const { username, password } = req.body;
 

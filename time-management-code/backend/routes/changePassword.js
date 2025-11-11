@@ -1,10 +1,10 @@
-const Parser = require('/middleware/body-parser');
-const checkauth = require('/middleware/checkauth')
+const Parser = require('/middleware/parser');
+const checkauth = require('/middleware/checkauth');
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 
-router.get('/changepassword'), checkauth, async (req,res) => {
+router.get('/changepassword'), Parser, async (req,res) => {
 
     try {
     const userId = req.userData.userId;
