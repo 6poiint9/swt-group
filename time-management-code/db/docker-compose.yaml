@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: secureauth-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: secureauth
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - dbdata:/var/lib/postgresql/data
+volumes:
+  dbdata:
