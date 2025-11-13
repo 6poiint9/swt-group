@@ -1,86 +1,129 @@
-.container{
-    display: flex;
-    flex-direction: column;
-    margin: auto;
-    margin-top: 200px;
-    background: white;
-    padding-bottom: 40px;
+/* logreg.css (Aktualisiert) */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+  padding: 30px 40px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 450px;
 }
 
-.header{
-    display: flex;
-    flex-direction: colum;
-    align-items: center;
-    gap: 9px;
-    width: 100%;
-    margin-top: 30px;
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
-.text{
-    color: black;
-    font-size: 28px;
-    font-weight: 700;
-
+.text {
+  color: #333;
+  font-size: 36px;
+  font-weight: 700;
 }
 
-.inputs{
-    margin-top: 55px;
-    display:flex;
-    flex-direction: column;
+.underline {
+  width: 60px;
+  height: 4px;
+  background: #007bff;
+  border-radius: 9px;
 }
 
-.input{
-    display: flex;
-    align-items: center;
-    margin: auto;
-    width: 680px;
-    height: 65px;
-    background: #eaeaea;
-    border-radius: 6px;
+/* NEU (F3): Das Formular soll die volle Breite einnehmen */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.input img{
-    margin: 0px 30px;
+.inputs {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
 }
 
-.input input{
-    height: 50px;
-    width: 400px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #797979;
-    font-size: 14px;
+.input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  background: #eaeaea;
+  border-radius: 6px;
 }
 
-.submit-container{
-    display: flex;
-    gap:30px;
-    margin: 60px auto;
+.input img {
+  margin: 0px 15px;
+  width: 20px;
+  height: 20px;
 }
 
-.submit{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 200px;
-    Height: 45px;
-    color: #fff;
-    background: gray ;
-    border-radius: 50px;
-    font-size: 19px;
-    font-weight: 700;
+.input input {
+  height: 48px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #555;
+  font-size: 18px;
 }
 
-.submit{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 200px;
-    Height: 45px;
-    color: #fff;
-    background: gray ;
-    border-radius: 50px;
-    font-size: 19px;
-    font-weight: 700;
+.input input::placeholder {
+  color: #999;
+}
+
+.submit-container {
+  margin-top: 30px;
+  width: 100%;
+}
+
+.submit {
+  width: 100%;
+  height: 50px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit:hover {
+  background: #0056b3;
+}
+
+/* --- NEU (F1): Styling für Benachrichtigungen --- */
+
+/* Basis-Styling für beide Benachrichtigungs-Typen */
+.notify-error,
+.notify-success {
+  width: 100%;
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: -5px; /* Etwas näher an die Inputs rücken */
+  border-radius: 5px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Roter Hintergrund für Fehler */
+.notify-error {
+  background-color: #f8d7da; /* Helles Rot */
+  color: #721c24; /* Dunkelrot */
+  border: 1px solid #f5c6cb;
+}
+
+/* Grüner Hintergrund für Erfolg */
+.notify-success {
+  background-color: #d4edda; /* Helles Grün */
+  color: #155724; /* Dunkelgrün */
+  border: 1px solid #c3e6cb;
 }
