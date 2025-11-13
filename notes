@@ -8,6 +8,22 @@ Authentication Endpunkt
 Database
 Connection with database
 
+Backend structure:
+backend/
+├── node_modules/       # (Ignorieren - Hier leben die installierten Pakete)
+├── middleware/         # <-- Dein Ordner!
+│   └── checkAuth.js    # (Hier kommt der "Türsteher" rein)
+├── models/             # (Später: Hier kommt die Datenbank-Definition rein)
+│   └── User.js
+├── routes/             # (Hier definieren wir die API-"Türen" / Endpunkte)
+│   └── authRoutes.js   # (z.B. /login, /register)
+│   └── timesheetRoutes.js # (z.B. /arbeitszeiten)
+├── utils/              # (Oder "services")
+│   └── tokenService.js # (Hier kommt die Token-Erstellung rein!)
+├── .env                # (Die geheime Datei für Passwörter & Secrets)
+├── package.json        # (Der "Personalausweis" des Projekts)
+└── server.js           # (Die Haupt-Datei: Startet alles)
+
 
 Time management:
 
