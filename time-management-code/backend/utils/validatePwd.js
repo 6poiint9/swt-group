@@ -1,5 +1,5 @@
 const argon2 = require('argon2');
-const User = require('../querie/db_querie'); // Importiert die DB-Funktionen
+const User = require('../querie/db_querie.js');
 const { validateUsername, validatePassword } = require('../middleware/parsing.js'); // Importiert die Parser-Funktionen
 
 const validatePasswordAndGetUser = async (username, password) => {
