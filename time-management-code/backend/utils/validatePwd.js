@@ -13,7 +13,7 @@ const validatePasswordAndGetUser = async (username, password) => {
   }
 
   // 2. User in der DB suchen (aus ../querie/db_querie)
-  const user = await User.getUserbyUsername(uCheck.value);
+  const user = await User.getUserByUsername(uCheck.value);
   if (!user) {
     throw new Error('invalid login');
   }
