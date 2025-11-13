@@ -37,7 +37,7 @@ const Logreg = () => {
         // 3. HIER ist die Weiterleitung!
         // Wir warten 1 Sekunde, damit der User die Erfolgs-Nachricht sieht
         setTimeout(() => {
-          navigate('/dashboard'); 
+          navigate('/myView'); 
         }, 1000); // 1000ms = 1 Sekunde
 
       } else {
