@@ -64,6 +64,24 @@ export async function changePasswordByUsername(username, newPasswordHash) { // {
   console.log("[changePasswordByUsername] updated:", rows[0]);
   return rows[0] || null;
 
+<<<<<<< HEAD
+}
+
+/**
+ * Holt ID und Passwort-Hash anhand des Usernames
+ */
+export async function getUserIdAndPasswordByUsername(username) { // { id: '11', password_hash: 'newHash456' }
+  const query = `
+    SELECT id, password_hash
+    FROM users
+    WHERE username = $1
+  `;
+  console.log("[getUserIdAndPasswordByUsername] username:", username);
+  const { rows } = await pool.query(query, [username]);
+  console.log("[getUserIdAndPasswordByUsername] result:", rows[0]);
+  return rows[0] || null;
+=======
+>>>>>>> origin/feature/backend-db-models
 }
 
 /**
@@ -80,4 +98,3 @@ export async function getUserIdAndPasswordByUsername(username) { // { id: '11', 
   console.log("[getUserIdAndPasswordByUsername] result:", rows[0]);
   return rows[0] || null;
 }
-
