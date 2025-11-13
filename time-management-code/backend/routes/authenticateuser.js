@@ -23,6 +23,7 @@ router.post('/login', async (req, res) => {
     
     // 3. Sende die Erfolgs-Antwort (HTTP 200)
     res.json({ success: true, token, username: user.username });
+    
 
   } catch (err) {
     // 4. Fehler! (z.B. 'invalid login' vom Service)
