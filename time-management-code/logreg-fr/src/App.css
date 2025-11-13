@@ -1,0 +1,16 @@
+.App {
+  /* Sag dem App-Container, er soll Flexbox verwenden */
+  display: flex;
+  
+  /* Zentriert das Kind (dein Login-Formular) horizontal */
+  align-items: center; 
+  
+  /* Zentriert das Kind vertikal */
+  justify-content: center; 
+  
+  /* Stell sicher, dass der Container die volle Bildschirmhöhe einnimmt */
+  min-height: 100vh; 
+  
+  /* Die Hintergrundfarbe (optional, kannst du ändern) */
+  background-color: #f0f2f5; 
+}
