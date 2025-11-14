@@ -17,5 +17,7 @@ INSERT INTO users (email, username, rolename, password_hash, is_verified)
 VALUES ('dummy@example.com', 'dummyuser', 'employee', '$argon2id$v=19$m=65536,t=3,p=4$4VsFnpyCJAWtYoph8KGdbA$0Txy7Aos46NnXRR0CFqW+xdzN0bPZEs4bUerVXZTHnQ', TRUE);
 
 INSERT INTO users (email, username, rolename, password_hash, is_verified)
-VALUES ('dummyhr@example.de', 'dummyhr', 'hr', '$argon2id$v=19$m=65536,t=3,p=4$WGgEvjqeBRKqgYRRlGoXhQ$Acgef/KY+rJWSjF5KYalpv4RiUX8QSljFZfk+wZ
-GFSI', true);
+VALUES ('dummyhr@example.de', 'dummyhr', 'hr', '$argon2id$v=19$m=65536,t=3,p=4$WGgEvjqeBRKqgYRRlGoXhQ$Acgef/KY+rJWSjF5KYalpv4RiUX8QSljFZfk+wZGFSI', TRUE);
+
+INSERT INTO users (email, username, rolename, password_hash, is_verified)
+VALUES ('dummysv@example.de', 'dummysv', 'supervisor', '$argon2id$v=19$m=65536,t=3,p=4$WGgEvjqeBRKqgYRRlGoXhQ$Acgef/KY+rJWSjF5KYalpv4RiUX8QSljFZfk+wZGFSI', TRUE);
