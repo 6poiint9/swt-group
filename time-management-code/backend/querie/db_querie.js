@@ -30,14 +30,14 @@ async function getUserByUsername(username) {
 /**
  * Fügt einen neuen Nutzer hinzu
  */
-async function createUser(email, username, passwordHash) {
+async function createUser(email, username, passwordHash, rolename = "employee") {
   const query = `
-    INSERT INTO users (email, username, password_hash)
-    VALUES ($1, $2, $3)
-    RETURNING id, email, username;
+    INSERT INTO users (email, username, password_hash, rolename)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id, email, username, rolename;
   `;
-  console.log("[createUser] email:", email, "username:", username);
-  const { rows } = await pool.query(query, [email, username, passwordHash]);
+  console.log("[createUser] email:", email, "username:", username, "rolename:", rolename);
+  const { rows } = await pool.query(query, [email, username, passwordHash, rolename]);
   console.log("[createUser] created:", rows[0]);
   return rows[0];
 }
@@ -87,7 +87,7 @@ async function getUserIdAndPasswordByUsername(username) { // { id: '11', passwor
 
 
 //---------rolename Möglichkeiten: employee, hr, supervisor
-export async function getRoleByUsername(username) { // {id: '1', username: 'dummy', role: "employee" | "supervisor" | "hr"}
+async function getRoleByUsername(username) { // {id: '1', username: 'dummy', role: "employee" | "supervisor" | "hr"}
   const query = `
     SELECT id, username, rolename
     FROM users
