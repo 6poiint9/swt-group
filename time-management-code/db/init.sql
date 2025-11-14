@@ -12,5 +12,4 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-INSERT INTO users (email, username, password_hash, is_verified)
-VALUES ('dummy@example.com', 'dummyuser', '$argon2id$v=19$m=65536,t=3,p=4$4VsFnpyCJAWtYoph8KGdbA$0Txy7Aos46NnXRR0CFqW+xdzN0bPZEs4bUerVXZTHnQ', TRUE);
+INSERT INTO users (email, username, password_hash, is_verified) VALUES ('dummy@example.com', 'dummyuser', '$argon2id$v=19$m=65536,t=3,p=4$4VsFnpyCJAWtYoph8KGdbA$0Txy7Aos46NnXRR0CFqW+xdzN0bPZEs4bUerVXZTHnQ', TRUE);

@@ -1,5 +1,45 @@
 Company: STC
 
+Stuff to finish/look at:
+1. Token im localStorage (XSS-Risiko):
+
+LocalStorage ist für JavaScript zugänglich
+
+Bei XSS-Angriffen kann der Token gestohlen werden
+
+Empfehlung: Auf httpOnly Cookies umstellen:
+
+javascript
+// Backend:
+res.cookie('token', token, {
+  httpOnly: true,    // Nicht von JS lesbar
+  secure: true,      // Nur HTTPS
+  sameSite: 'strict' // CSRF-Schutz
+});
+
+// Frontend:
+fetch(url, { credentials: 'include' }); // Cookie wird automatisch gesendet
+
+!!!!!!!!!!!!!!!2. Change Password!!!!!!!!!!!!!!!
+
+erellen von butoon feldern etc frontend.
+routing to backend api changepw
+
+3. Logout button
+**Implementierung:**
+1. Datenbank-Tabelle erstellen:
+```sql
+CREATE TABLE token_blacklist (
+  id SERIAL PRIMARY KEY,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```2. `checkauth.js` erweitern - Blacklist vor jeder Protected Route prüfen
+3. Neue `/api/logout` Route erstellen
+4. Frontend: Logout-Handler sendet POST-Request ans Backend
+
+
 Tasks for Implementation:
 login Frontend
 Routing

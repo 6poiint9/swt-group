@@ -15,7 +15,11 @@ const checkAuth = (req, res, next) => {
     // 1. "Zeig mir deinen Ausweis"
     //    Der Client (Frontend) MUSS den Token im Header mitschicken.
     //    Standard ist: "Authorization: Bearer DEIN_TOKEN_STRING"
-    const token = req.headers.authorization.split(' ')[1]; // Holt den Token-Teil
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Ungültiger Header' });
+    }
+    const token = authHeader.split(' ')[1]; // Holt den Token-Teil
 
     if (!token) {
       throw new Error('Kein Token gefunden');

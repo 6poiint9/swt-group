@@ -19,7 +19,7 @@ router.post('/changepassword', async (req, res) => {
         // aber in der Vorrunde haben wir es 'validatePasswordAndGetUser' genannt.
         // Ich gehe davon aus, dass 'validatePassword' die Funktion ist, die wir
         // in Schritt 3 der Vorrunde repariert haben.
-        await authservice.validatePassword(username, oldPassword);
+        await authservice.validatePasswordAndGetUser(username, oldPassword);
 
         // 2. Neue Passwörter vergleichen
         if (newPasswordOne !== newPasswordTwo) {

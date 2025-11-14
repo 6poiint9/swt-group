@@ -8,7 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 // (Hier kommen gleich unsere Endpunkte hin)
-router.get('/myview', checkAuth, (req, res) => {
+router.get('/', checkAuth, (req, res) => {
 
   try {
     // --- HIER IST DER ZUGRIFF ---
@@ -22,31 +22,31 @@ router.get('/myview', checkAuth, (req, res) => {
       
       // --- Logik NUR für Supervisoren ---
       // (z.B. Datenbankabfrage für alle Teammitglieder)
-      res.status(200).json({
+    return  res.status(200).json({
         message: "Team-Übersicht für Supervisor",
-        teamData: [/* ... Daten ... */]
+        teamData: ["Hans", "Greta", "Lukas"] // Beispiel-Daten
       });
     }
      if (req.userData.role === 'HR') {
       
       // --- Logik NUR für Supervisoren ---
       // (z.B. Datenbankabfrage für alle Teammitglieder)
-      res.status(200).json({
+      return res.status(200).json({
         message: "Allgemeine Übersicht für HR",
-        teamData: [/* ... Daten ... */]
+        teamData: ["Anna", "Bernd", "Clara","Entwicklung", "Marketing"] // Beispiel-Daten
       });
     }
      if (req.userData.role === 'Employee') {
       
       // --- Logik NUR für Supervisoren ---
       // (z.B. Datenbankabfrage für alle Teammitglieder)
-      res.status(200).json({
+      return  res.status(200).json({
         message: "Standard-Übersicht für Mitarbeiter",
-        teamData: [/* ... Daten ... */]
+        teamData: ["I am just a guy"]
       });
     }
   } catch (error) {
-    res.status(500).json({ message: 'Serverfehler' });
+    return res.status(500).json({ message: 'Serverfehler' });
   }
 });
 
