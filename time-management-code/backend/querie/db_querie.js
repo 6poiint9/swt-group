@@ -85,10 +85,29 @@ async function getUserIdAndPasswordByUsername(username) { // { id: '11', passwor
   return rows[0] || null;
 }
 
+
+//---------rolename Möglichkeiten: employee, hr, supervisor
+export async function getRoleByUsername(username) { // {id: '1', username: 'dummy', role: "employee" | "supervisor" | "hr"}
+  const query = `
+    SELECT id, username, rolename
+    FROM users
+    WHERE username = $1
+  `;
+  console.log("[getRoleByUsername] username:", username);
+
+  const { rows } = await pool.query(query, [username]);
+
+  console.log("[getRoleByUsername] result:", rows[0]);
+  return rows[0] || null;
+}
+
+
 module.exports = {
   getAllUsers,
   getUserByUsername,
   createUser,
   deleteUserById,
-  changePasswordByUsername
+  changePasswordByUsername,
+  getUserIdAndPasswordByUsername,
+  getRoleByUsername
 };
