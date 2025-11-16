@@ -17,7 +17,7 @@ const generateToken = (user) => {
   //    NIEMALS Passwörter oder private Daten hier rein!
   const payload = {
     userId: user.id,
-    role: user.role 
+    role: user.rolename
   };
 
   // 2. Das "Geheimnis" (Secret): Womit wird der Ausweis "versiegelt"?
