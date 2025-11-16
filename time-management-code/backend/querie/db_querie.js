@@ -20,7 +20,7 @@ async function getUserByUsername(username) {
   // Wir MÜSSEN das Passwort-Hash mit abrufen.
   // WICHTIG: Wir nutzen 'AS password', damit das Feld 'password' heißt.
   //          Das ist der Name, den 'utils/validatePwd.js' erwartet!
-  const query = "SELECT id, email, username, password_hash AS password FROM users WHERE username = $1";
+  const query = "SELECT id, email, username, rolename, password_hash AS password FROM users WHERE username = $1";
   console.log("[getUserByUsername] username:", username);
   const { rows } = await pool.query(query, [username]);
   console.log("[getUserByUsername] result:", rows[0]);
