@@ -1,3 +1,36 @@
 Notes:
 
+--- Datensätze ---
+## df_history:
+Nutzen: zum training des Modells
+=> voraussichtliche Fertigstellungstermine von Fertigungsaufträgen realistisch prognostizieren 
+- beinhaltet abgearbeitete sowie aktuell laufende Fertigungsaufträge
+=> von den 3 witchtigsten Bauteilen:
+- Steuerventilmodul, Schwenkzylinder und Dämpfungseinheit. 
+Jeder auftrag besteht aus -> durchlaufenen Arbeitsschritten (AFO)
+
+## df_IDs_for_eval
+- Liste von offenen auftrags IDs
+=> für diese soll Fertigstellungstermin prognostiziert werden soll.
+
+## eval_public und eval_private
+- unterschiedliche Aufträge
+=> wichtig für Aussage aber nicht für training
+Enthält:
+- Features für die Aufträge, die ihr vorhersagen müsst
+
+
+--- Generell ---
+Modell wird mit ## df_history trainiert!
+
+
+--- Bereinigen ---
+Raus:
+- alles vor 01.01.2014
+- alles nach 01.03.2024 weg
+
+Prozess:
+IST_START und IST_ENDE
+
+
 
