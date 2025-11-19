@@ -21,7 +21,10 @@ Enthält:
 
 
 --- Generell ---
-Modell wird mit ## df_history trainiert!
+- Modell wird mit ## df_history trainiert!
+- AFO start ist ab Info
+-  "just-in-time" Ansatz => Aufträge werden so eingeplant, zu Zeitpunkt fertig werden, den der Kunde bei der Bestellung angegeben hat, 
+nicht wann sie bestellt wurden.
 
 
 --- Bereinigen ---
@@ -31,6 +34,9 @@ Raus:
 
 Prozess:
 IST_START und IST_ENDE
+=> AFO_DAUER in stunden wird addiert 
+
+AFO Fertigungsuftrag-komplett:
 
 
 
