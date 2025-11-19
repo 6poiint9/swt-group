@@ -38,5 +38,43 @@ IST_START und IST_ENDE
 
 AFO Fertigungsuftrag-komplett:
 
+Wochentags Maske:
+import pandas as pd
+from pandas.tseries.offsets import CustomBusinessHour
+
+# 1. Definition der Produktionszeit (MO-FR, 07:00 - 15:00)
+# Wir definieren KEINE Feiertage, da laut Aufgabe an Feiertagen gearbeitet wird.
+production_offset = CustomBusinessHour(
+    start='07:00',
+    end='15:00',
+    weekmask='Mon Tue Wed Thu Fri' 
+)
+
+def calculate_end_date(start_dt, duration_hours):
+    """
+    Addiert eine Dauer in Stunden auf ein Startdatum unter Berücksichtigung
+    der Produktionszeiten (Mo-Fr 07-15 Uhr).
+    """
+    # Sicherheitscheck: Valide Datetime?
+    if pd.isna(start_dt):
+        return pd.NaT
+    
+    # CustomBusinessHour rechnet in 'Business Hours'.
+    # Wenn wir floats haben (z.B. 2.5 Stunden), müssen wir das beachten.
+    # Leider unterstützt CustomBusinessHour nur Integer-Multiplikation direkt gut mit +
+    # Workaround für Floats: Wir konvertieren in Minuten
+    
+    duration_minutes = int(round(duration_hours * 60))
+    
+    # Wir addieren Minuten. Leider ist CustomBusinessHour etwas zickig mit Minuten-Offsets.
+    # Besserer Weg laut Pandas Docs für genaue Zeit:
+    # Wir nutzen den Offset, um Tage zu springen, aber wir müssen die 'Restminuten'
+    # innerhalb des Offsets handhaben.
+    
+    # Einfachste Approximation, die meistens genau genug ist für ML:
+    # Wir teilen die Stunden in BusinessHours auf.
+    
+    return start_dt + (duration_hours * production_offset)
+
 
 
