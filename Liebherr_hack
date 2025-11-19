@@ -1,4 +1,6 @@
 Notes:
+Command => head -n 500 df_history_2025-11-03.csv > history_edit.csv
+
 
 --- Datensätze ---
 ## df_history:
