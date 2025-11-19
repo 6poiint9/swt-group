@@ -1,0 +1,655 @@
+#%%
+# ============================================================================
+# LIEBHERR HACKATHON 2025 - VERBESSERTES MODELL
+# ============================================================================
+# Dieses Notebook enthält mehrere Verbesserungen:
+# 1. Berücksichtigung der bisherigen Auftrags-Historie
+# 2. Feature Engineering (Fortschritt, Verzögerungen, etc.)
+# 3. Mehrere Modell-Ansätze (Baseline, verbessert, ML)
+# 4. Bessere Vorhersagequalität
+# ============================================================================
+
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+print("="*80)
+print("LIEBHERR HACKATHON 2025 - VERBESSERTES MODELL")
+print("="*80)
+
+
+# ============================================================================
+# TEIL 1: DATEN LADEN UND VORBEREITEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 1: DATEN LADEN")
+print("="*80)
+
+# Daten laden
+df_history = pd.read_csv('df_history_clean.csv')
+df_eval_public = pd.read_csv('df_eval_public_2025-11-03.csv')
+df_eval_private = pd.read_csv('df_eval_private_2025-11-03.csv')
+df_ids = pd.read_csv('df_IDs_for_eval_2025-11-03.csv')
+
+print(f"✓ df_history geladen: {len(df_history):,} Zeilen")
+print(f"✓ df_eval_public geladen: {len(df_eval_public):,} Zeilen")
+print(f"✓ df_eval_private geladen: {len(df_eval_private):,} Zeilen")
+print(f"✓ df_ids geladen: {len(df_ids):,} IDs")
+
+# Kombiniere eval Dateien
+df_eval = pd.concat([df_eval_public, df_eval_private], ignore_index=True)
+print(f"✓ df_eval kombiniert: {len(df_eval):,} Zeilen")
+
+# Datumsspalten konvertieren
+date_cols_history = ['Auftragseingang', 'Auftragsende_SOLL', 'AFO_Start_SOLL',
+                     'AFO_Ende_SOLL', 'AFO_Start_IST', 'AFO_Ende_IST', 'Auftragsende_IST']
+date_cols_eval = ['Auftragseingang', 'Auftragsende_SOLL', 'AFO_Start_SOLL',
+                  'AFO_Ende_SOLL', 'AFO_Start_IST']
+
+for col in date_cols_history:
+    if col in df_history.columns:
+        df_history[col] = pd.to_datetime(df_history[col], errors='coerce')
+
+for col in date_cols_eval:
+    if col in df_eval.columns:
+        df_eval[col] = pd.to_datetime(df_eval[col], errors='coerce')
+
+print("✓ Datumsspalten konvertiert")
+
+# Stichtag definieren
+STICHTAG = pd.Timestamp('2024-03-01 14:30:00')
+print(f"\n✓ Stichtag: {STICHTAG}")
+
+
+# ============================================================================
+# TEIL 2: HILFSFUNKTIONEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 2: HILFSFUNKTIONEN DEFINIEREN")
+print("="*80)
+
+def add_business_hours(start_dt, hours):
+    """
+    Addiert Arbeitsstunden zu einem Startdatum.
+    Arbeitszeit: Mo-Fr, 07:00-15:00 (8 Stunden/Tag)
+    Feiertage werden gearbeitet.
+    """
+    if pd.isna(start_dt) or hours <= 0:
+        return start_dt
+
+    # Anzahl volle Arbeitstage
+    full_days = int(hours // 8)
+    remaining_hours = hours % 8
+
+    # Normalisiere auf 07:00 des aktuellen Tages
+    current = pd.Timestamp(start_dt.date()) + pd.Timedelta(hours=7)
+
+    # Wenn Startzeit nach 07:00 ist, berücksichtige das
+    if start_dt.hour >= 7 and start_dt.hour < 15:
+        current = start_dt
+    elif start_dt.hour >= 15:
+        # Nach Feierabend -> nächster Tag 07:00
+        current = pd.Timestamp(start_dt.date()) + pd.Timedelta(days=1, hours=7)
+        # Wenn das ein Wochenende ist, springe zu Montag
+        while current.weekday() >= 5:
+            current += pd.Timedelta(days=1)
+
+    # Addiere volle Arbeitstage
+    days_added = 0
+    while days_added < full_days:
+        current += pd.Timedelta(days=1)
+        if current.weekday() < 5:  # Mo-Fr
+            days_added += 1
+
+    # Addiere verbleibende Stunden
+    if remaining_hours > 0:
+        # Prüfe ob wir noch am selben Tag bleiben
+        end_time = current + pd.Timedelta(hours=remaining_hours)
+        if end_time.hour > 15 or (end_time.hour == 15 and end_time.minute > 0):
+            # Überschreitet Feierabend -> nächster Arbeitstag
+            overflow = (end_time - current.replace(hour=15, minute=0, second=0)).total_seconds() / 3600
+            current = current.replace(hour=15, minute=0, second=0)
+            # Nächster Tag
+            current += pd.Timedelta(days=1, hours=7)
+            while current.weekday() >= 5:
+                current += pd.Timedelta(days=1)
+            current += pd.Timedelta(hours=overflow)
+        else:
+            current = end_time
+
+    return current
+
+
+def calculate_business_hours_between(start_dt, end_dt):
+    """
+    Berechnet Arbeitsstunden zwischen zwei Zeitpunkten.
+    Mo-Fr, 07:00-15:00, Feiertage werden gearbeitet.
+    """
+    if pd.isna(start_dt) or pd.isna(end_dt):
+        return 0
+
+    if end_dt <= start_dt:
+        return 0
+
+    # Vereinfachte Berechnung: Zähle Werktage * 8h
+    start_date = start_dt.date()
+    end_date = end_dt.date()
+
+    # Nutze numpy für effiziente Berechnung
+    business_days = np.busday_count(start_date, end_date)
+
+    return business_days * 8.0
+
+
+print("✓ Hilfsfunktionen definiert")
+print("  - add_business_hours(): Addiert Arbeitsstunden zu einem Datum")
+print("  - calculate_business_hours_between(): Berechnet Arbeitsstunden zwischen zwei Daten")
+
+
+# ============================================================================
+# TEIL 3: LERN-PHASE - STATISTIKEN AUS HISTORY EXTRAHIEREN
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 3: LEARNING - EXTRAHIERE STATISTIKEN AUS HISTORY")
+print("="*80)
+
+# 3.1: Standardarbeitsplan pro Bauteil
+print("\n3.1 Standardarbeitsplan pro Bauteil extrahieren...")
+
+# Finde für jedes Bauteil die typische Anzahl AFOs
+standard_afo_plan = df_history.groupby(['BauteilID', 'AuftragsID'])['Arbeitsschritt'].max().groupby('BauteilID').agg(['median', 'mean', 'max'])
+standard_afo_plan.columns = ['Median_AFOs', 'Mean_AFOs', 'Max_AFOs']
+print("\nStandardarbeitsplan (Anzahl AFOs):")
+print(standard_afo_plan)
+
+# Dictionary für schnellen Zugriff
+standard_afo_count = standard_afo_plan['Median_AFOs'].to_dict()
+
+
+# 3.2: Durchschnittliche Dauer pro Bauteil
+print("\n3.2 Berechne durchschnittliche Gesamtdauer pro Bauteil...")
+
+# Filtere komplette Aufträge (mit Auftragsende_IST)
+complete_orders = df_history[df_history['Auftragsende_IST'].notna()].copy()
+
+# Berechne Dauer von erstem Start bis letztem Ende
+order_durations = complete_orders.groupby('AuftragsID').agg({
+    'BauteilID': 'first',
+    'Bauteilbezeichnung': 'first',
+    'AFO_Start_IST': 'min',
+    'Auftragsende_IST': 'first'
+}).reset_index()
+
+# Berechne Arbeitsstunden
+order_durations['Duration_Hours'] = order_durations.apply(
+    lambda row: calculate_business_hours_between(row['AFO_Start_IST'], row['Auftragsende_IST']),
+    axis=1
+)
+
+# Entferne negative oder zu große Dauern (Datenqualität)
+order_durations = order_durations[
+    (order_durations['Duration_Hours'] > 0) &
+    (order_durations['Duration_Hours'] < 10000)
+]
+
+# Statistiken pro Bauteil
+duration_stats = order_durations.groupby(['BauteilID', 'Bauteilbezeichnung'])['Duration_Hours'].agg([
+    ('Count', 'count'),
+    ('Median_Hours', 'median'),
+    ('Mean_Hours', 'mean'),
+    ('Std_Hours', 'std'),
+    ('Q25_Hours', lambda x: x.quantile(0.25)),
+    ('Q75_Hours', lambda x: x.quantile(0.75))
+]).reset_index()
+
+print("\nDauer-Statistiken pro Bauteil:")
+for _, row in duration_stats.iterrows():
+    print(f"\n{row['Bauteilbezeichnung']} (BauteilID={int(row['BauteilID'])}):")
+    print(f"  Anzahl Aufträge: {int(row['Count']):>10,}")
+    print(f"  Median Stunden:  {row['Median_Hours']:>10.1f} h ({row['Median_Hours']/8:.1f} Arbeitstage)")
+    print(f"  Mean Stunden:    {row['Mean_Hours']:>10.1f} h ({row['Mean_Hours']/8:.1f} Arbeitstage)")
+
+# Dictionary für schnellen Zugriff
+median_duration_dict = duration_stats.set_index('BauteilID')['Median_Hours'].to_dict()
+
+
+# 3.3: Durchschnittliche Verzögerung (SOLL vs IST)
+print("\n3.3 Berechne durchschnittliche Verzögerungen...")
+
+# Aufträge mit sowohl SOLL als auch IST
+orders_with_both = df_history[
+    df_history['Auftragsende_IST'].notna() &
+    df_history['Auftragsende_SOLL'].notna()
+].copy()
+
+delay_analysis = orders_with_both.groupby('AuftragsID').agg({
+    'BauteilID': 'first',
+    'Auftragsende_SOLL': 'first',
+    'Auftragsende_IST': 'first'
+}).reset_index()
+
+# Berechne Verzögerung in Tagen
+delay_analysis['Delay_Days'] = (
+    delay_analysis['Auftragsende_IST'] - delay_analysis['Auftragsende_SOLL']
+).dt.total_seconds() / (24 * 3600)
+
+# Statistiken pro Bauteil
+delay_stats = delay_analysis.groupby('BauteilID')['Delay_Days'].agg([
+    ('Count', 'count'),
+    ('Median_Delay', 'median'),
+    ('Mean_Delay', 'mean'),
+    ('Std_Delay', 'std')
+]).reset_index()
+
+print("\nVerzögerungs-Statistiken (in Tagen):")
+for _, row in delay_stats.iterrows():
+    print(f"\nBauteilID {int(row['BauteilID'])}:")
+    print(f"  Median Verzögerung: {row['Median_Delay']:>8.1f} Tage")
+    print(f"  Mean Verzögerung:   {row['Mean_Delay']:>8.1f} Tage")
+
+# Dictionary für schnellen Zugriff
+median_delay_dict = delay_stats.set_index('BauteilID')['Median_Delay'].to_dict()
+
+
+# 3.4: Durchschnittliche Dauer pro AFO-Typ
+print("\n3.4 Berechne durchschnittliche Dauer pro AFO-Typ...")
+
+afo_durations = df_history[
+    (df_history['AFO_Start_IST'].notna()) &
+    (df_history['AFO_Ende_IST'].notna()) &
+    (df_history['AFO_Dauer_IST_Stunde'].notna()) &
+    (df_history['AFO_Dauer_IST_Stunde'] > 0) &
+    (df_history['AFO_Dauer_IST_Stunde'] < 1000)  # Filter Outliers
+].copy()
+
+afo_stats = afo_durations.groupby(['BauteilID', 'Arbeitsschritt'])['AFO_Dauer_IST_Stunde'].agg([
+    ('Count', 'count'),
+    ('Median_Hours', 'median'),
+    ('Mean_Hours', 'mean')
+]).reset_index()
+
+print(f"✓ AFO-Statistiken berechnet für {len(afo_stats)} BauteilID-AFO Kombinationen")
+
+# Dictionary für schnellen Zugriff: (BauteilID, AFO) -> Median Hours
+afo_median_dict = afo_stats.set_index(['BauteilID', 'Arbeitsschritt'])['Median_Hours'].to_dict()
+
+
+print("\n" + "="*80)
+print("✅ LEARNING ABGESCHLOSSEN")
+print("="*80)
+
+
+# ============================================================================
+# TEIL 4: FEATURE ENGINEERING FÜR EVAL-AUFTRÄGE
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 4: FEATURE ENGINEERING")
+print("="*80)
+
+print("\nErstelle Features für jeden zu prognostizierenden Auftrag...")
+
+features_list = []
+
+for idx, auftrag_id in enumerate(df_ids['AuftragsID']):
+    if (idx + 1) % 1000 == 0:
+        print(f"  Verarbeitet: {idx + 1}/{len(df_ids)}")
+
+    # Hole eval-Info
+    eval_row = df_eval[df_eval['AuftragsID'] == auftrag_id]
+    if len(eval_row) == 0:
+        continue
+    eval_row = eval_row.iloc[0]
+
+    # Hole Historie
+    history = df_history[df_history['AuftragsID'] == auftrag_id].copy()
+
+    # Basis-Features
+    bauteil_id = eval_row['BauteilID']
+    prioritaet = eval_row['Priorität']
+    auftragsende_soll = eval_row['Auftragsende_SOLL']
+    auftragseingang = eval_row['Auftragseingang']
+
+    # Feature 1: Anzahl abgeschlossener AFOs
+    completed_afos = len(history[history['AFO_Ende_IST'].notna()])
+
+    # Feature 2: Standard AFO-Anzahl für dieses Bauteil
+    total_afos = standard_afo_count.get(bauteil_id, 10)
+
+    # Feature 3: Fortschritt (0 bis 1)
+    progress = completed_afos / total_afos if total_afos > 0 else 0
+
+    # Feature 4: Letzter bekannter Zeitpunkt
+    if len(history) > 0 and history['AFO_Ende_IST'].notna().any():
+        last_afo_end = history['AFO_Ende_IST'].max()
+    else:
+        last_afo_end = STICHTAG
+
+    # Feature 5: Bisherige Gesamtdauer
+    if len(history) > 0 and history['AFO_Start_IST'].notna().any():
+        first_start = history['AFO_Start_IST'].min()
+        elapsed_hours = calculate_business_hours_between(first_start, last_afo_end)
+    else:
+        elapsed_hours = 0
+
+    # Feature 6: Durchschnittliche AFO-Dauer bisher
+    if completed_afos > 0:
+        completed_history = history[history['AFO_Dauer_IST_Stunde'].notna()]
+        if len(completed_history) > 0:
+            avg_afo_duration = completed_history['AFO_Dauer_IST_Stunde'].mean()
+        else:
+            avg_afo_duration = elapsed_hours / completed_afos if completed_afos > 0 else 0
+    else:
+        avg_afo_duration = 0
+
+    # Feature 7: Verbleibende AFOs
+    remaining_afos = max(0, total_afos - completed_afos)
+
+    # Feature 8: Erwartete Median-Dauer für dieses Bauteil
+    expected_median_hours = median_duration_dict.get(bauteil_id, 1000)
+
+    # Feature 9: Historische Verzögerung für dieses Bauteil
+    expected_delay_days = median_delay_dict.get(bauteil_id, 0)
+
+    # Feature 10: Nächste AFO Info
+    next_afo = eval_row['Arbeitsschritt']
+    next_afo_started = not pd.isna(eval_row['AFO_Start_IST'])
+
+    # Feature 11: Tage seit Auftragseingang
+    days_since_entry = (STICHTAG - auftragseingang).days if not pd.isna(auftragseingang) else 0
+
+    # Feature 12: Tage bis SOLL-Ende
+    days_to_soll = (auftragsende_soll - STICHTAG).days if not pd.isna(auftragsende_soll) else 100
+
+    features = {
+        'AuftragsID': auftrag_id,
+        'BauteilID': bauteil_id,
+        'Prioritaet': prioritaet,
+        'Completed_AFOs': completed_afos,
+        'Total_AFOs': total_afos,
+        'Remaining_AFOs': remaining_afos,
+        'Progress': progress,
+        'Last_AFO_End': last_afo_end,
+        'Elapsed_Hours': elapsed_hours,
+        'Avg_AFO_Duration': avg_afo_duration,
+        'Expected_Median_Hours': expected_median_hours,
+        'Expected_Delay_Days': expected_delay_days,
+        'Next_AFO': next_afo,
+        'Next_AFO_Started': next_afo_started,
+        'Days_Since_Entry': days_since_entry,
+        'Days_To_SOLL': days_to_soll,
+        'Auftragsende_SOLL': auftragsende_soll
+    }
+
+    features_list.append(features)
+
+df_features = pd.DataFrame(features_list)
+print(f"\n✓ Features erstellt für {len(df_features)} Aufträge")
+print(f"\nFeature-Übersicht:")
+print(df_features.describe())
+
+
+# ============================================================================
+# TEIL 5: VORHERSAGE-MODELLE
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 5: VORHERSAGE-MODELLE")
+print("="*80)
+
+
+# ============================================================================
+# MODELL 1: SIMPLE BASELINE (wie im Original)
+# ============================================================================
+
+print("\n" + "-"*80)
+print("MODELL 1: SIMPLE BASELINE")
+print("-"*80)
+print("Methode: Stichtag + Median-Dauer pro Bauteil")
+
+df_features['Prediction_Model1'] = df_features.apply(
+    lambda row: add_business_hours(STICHTAG, row['Expected_Median_Hours']),
+    axis=1
+)
+
+print("✓ Modell 1 Predictions erstellt")
+
+
+# ============================================================================
+# MODELL 2: SOLL + HISTORISCHE VERZÖGERUNG
+# ============================================================================
+
+print("\n" + "-"*80)
+print("MODELL 2: SOLL + HISTORISCHE VERZÖGERUNG")
+print("-"*80)
+print("Methode: Auftragsende_SOLL + durchschnittliche Verzögerung pro Bauteil")
+
+df_features['Prediction_Model2'] = df_features.apply(
+    lambda row: row['Auftragsende_SOLL'] + pd.Timedelta(days=row['Expected_Delay_Days'])
+    if not pd.isna(row['Auftragsende_SOLL']) else STICHTAG + pd.Timedelta(days=100),
+    axis=1
+)
+
+print("✓ Modell 2 Predictions erstellt")
+
+
+# ============================================================================
+# MODELL 3: FORTSCHRITT-BASIERT (EMPFOHLEN!)
+# ============================================================================
+
+print("\n" + "-"*80)
+print("MODELL 3: FORTSCHRITT-BASIERT (VERBESSERT)")
+print("-"*80)
+print("Methode: Letzter AFO-Zeitpunkt + geschätzte verbleibende Zeit")
+
+def predict_model3(row):
+    """
+    Intelligente Prognose basierend auf Fortschritt
+    """
+    # Startpunkt: Letzter bekannter AFO-Zeitpunkt (oder Stichtag)
+    start_point = row['Last_AFO_End']
+
+    # Geschätzte verbleibende Zeit
+    if row['Progress'] > 0 and row['Avg_AFO_Duration'] > 0:
+        # Nutze bisherige Performance
+        estimated_remaining = row['Remaining_AFOs'] * row['Avg_AFO_Duration']
+    else:
+        # Fallback: Nutze Median pro AFO
+        avg_hours_per_afo = row['Expected_Median_Hours'] / row['Total_AFOs'] if row['Total_AFOs'] > 0 else 100
+        estimated_remaining = row['Remaining_AFOs'] * avg_hours_per_afo
+
+    # Sicherheitsfaktor: Addiere 10% Buffer
+    estimated_remaining *= 1.1
+
+    # Berechne End-Datum
+    predicted_end = add_business_hours(start_point, estimated_remaining)
+
+    return predicted_end
+
+df_features['Prediction_Model3'] = df_features.apply(predict_model3, axis=1)
+
+print("✓ Modell 3 Predictions erstellt")
+
+
+# ============================================================================
+# MODELL 4: HYBRID (KOMBINIERT MODELL 2 & 3)
+# ============================================================================
+
+print("\n" + "-"*80)
+print("MODELL 4: HYBRID-ANSATZ")
+print("-"*80)
+print("Methode: Gewichteter Durchschnitt von Modell 2 und 3")
+
+def predict_model4(row):
+    """
+    Hybrid: Kombiniere SOLL+Delay mit Fortschritt-basiert
+    Gewichtung abhängig vom Fortschritt
+    """
+    pred2 = row['Prediction_Model2']
+    pred3 = row['Prediction_Model3']
+
+    # Wenn Fortschritt hoch (>50%), vertraue mehr auf Modell 3
+    # Sonst mehr auf Modell 2 (SOLL + historische Verzögerung)
+    if row['Progress'] > 0.5:
+        weight_model3 = 0.7
+    else:
+        weight_model3 = 0.3
+
+    # Berechne gewichteten Durchschnitt (als Timestamp)
+    pred2_ts = pred2.value if hasattr(pred2, 'value') else pd.Timestamp(pred2).value
+    pred3_ts = pred3.value if hasattr(pred3, 'value') else pd.Timestamp(pred3).value
+
+    hybrid_ts = weight_model3 * pred3_ts + (1 - weight_model3) * pred2_ts
+
+    return pd.Timestamp(hybrid_ts)
+
+df_features['Prediction_Model4'] = df_features.apply(predict_model4, axis=1)
+
+print("✓ Modell 4 Predictions erstellt")
+
+
+print("\n" + "="*80)
+print("✅ ALLE MODELLE ABGESCHLOSSEN")
+print("="*80)
+
+
+# ============================================================================
+# TEIL 6: SUBMISSIONS ERSTELLEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 6: SUBMISSION-DATEIEN ERSTELLEN")
+print("="*80)
+
+# Funktion zum Erstellen einer Submission
+def create_submission(df_features, prediction_column, filename):
+    """
+    Erstellt eine Submission-Datei im korrekten Format
+    """
+    df_sub = df_features[['AuftragsID', prediction_column]].copy()
+    df_sub.columns = ['AuftragsID', 'Auftragsende_PREDICTED']
+
+    # ID-Spalte hinzufügen
+    df_sub.insert(0, 'ID', np.arange(1, len(df_sub) + 1))
+
+    # Formatiere Datum
+    df_sub['Auftragsende_PREDICTED'] = pd.to_datetime(
+        df_sub['Auftragsende_PREDICTED']
+    ).dt.strftime('%Y-%m-%d')
+
+    # Validierung
+    print(f"\n✓ Validierung für {filename}:")
+    print(f"  1. Alle IDs vorhanden? {len(df_sub) == len(df_ids)}")
+    print(f"  2. Spalten korrekt? {list(df_sub.columns) == ['ID', 'AuftragsID', 'Auftragsende_PREDICTED']}")
+    print(f"  3. Keine NaN? {df_sub.isnull().sum().sum() == 0}")
+
+    # Speichern
+    df_sub.to_csv(filename, index=False)
+    print(f"  ✅ Gespeichert: {filename}")
+
+    # Preview
+    print(f"\n  Erste 5 Zeilen:")
+    print(df_sub.head())
+
+    return df_sub
+
+
+# Erstelle alle 4 Submissions
+print("\nErstelle Submission-Dateien für alle Modelle...")
+
+sub1 = create_submission(df_features, 'Prediction_Model1', 'submission_model1_baseline.csv')
+sub2 = create_submission(df_features, 'Prediction_Model2', 'submission_model2_soll_delay.csv')
+sub3 = create_submission(df_features, 'Prediction_Model3', 'submission_model3_progress.csv')
+sub4 = create_submission(df_features, 'Prediction_Model4', 'submission_model4_hybrid.csv')
+
+
+# ============================================================================
+# TEIL 7: VERGLEICH DER MODELLE
+# ============================================================================
+
+print("\n" + "="*80)
+print("TEIL 7: MODELL-VERGLEICH")
+print("="*80)
+
+print("\n📊 Durchschnittliches vorhergesagtes Enddatum pro Modell:")
+for i in range(1, 5):
+    col = f'Prediction_Model{i}'
+    avg_date = df_features[col].mean()
+    print(f"\nModell {i}: {avg_date.strftime('%Y-%m-%d')}")
+
+    # Verteilung anzeigen
+    min_date = df_features[col].min()
+    max_date = df_features[col].max()
+    print(f"  Bereich: {min_date.strftime('%Y-%m-%d')} bis {max_date.strftime('%Y-%m-%d')}")
+
+
+# Vergleiche: Wie unterscheiden sich die Modelle?
+print("\n📊 Durchschnittliche Unterschiede zwischen Modellen (in Tagen):")
+df_features['Diff_M2_M1'] = (df_features['Prediction_Model2'] - df_features['Prediction_Model1']).dt.days
+df_features['Diff_M3_M1'] = (df_features['Prediction_Model3'] - df_features['Prediction_Model1']).dt.days
+df_features['Diff_M4_M1'] = (df_features['Prediction_Model4'] - df_features['Prediction_Model1']).dt.days
+
+print(f"\nModell 2 vs Modell 1: {df_features['Diff_M2_M1'].mean():.1f} Tage (Median: {df_features['Diff_M2_M1'].median():.1f})")
+print(f"Modell 3 vs Modell 1: {df_features['Diff_M3_M1'].mean():.1f} Tage (Median: {df_features['Diff_M3_M1'].median():.1f})")
+print(f"Modell 4 vs Modell 1: {df_features['Diff_M4_M1'].mean():.1f} Tage (Median: {df_features['Diff_M4_M1'].median():.1f})")
+
+
+# ============================================================================
+# TEIL 8: EMPFEHLUNGEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("🎯 EMPFEHLUNGEN FÜR KAGGLE-SUBMISSION")
+print("="*80)
+
+print("""
+MODELL-ÜBERSICHT:
+
+1️⃣ MODELL 1 (Baseline):
+   - Einfachste Methode
+   - Nutzt nur Bauteil-Typ und Median-Dauer
+   - Ignoriert individuelle Auftrags-Historie
+   - Datei: submission_model1_baseline.csv
+
+2️⃣ MODELL 2 (SOLL + Verzögerung): ⭐ SCHNELLER QUICK WIN
+   - Nutzt geplantes Ende + historische Verzögerung
+   - Berücksichtigt Bauteil-spezifische Verzögerungsmuster
+   - Einfach aber oft effektiv!
+   - Datei: submission_model2_soll_delay.csv
+
+3️⃣ MODELL 3 (Fortschritt-basiert): ⭐⭐ EMPFOHLEN!
+   - Berücksichtigt bisherigen Fortschritt
+   - Nutzt tatsächliche bisherige Performance
+   - Startet von letztem bekannten Zeitpunkt
+   - Am intelligentesten!
+   - Datei: submission_model3_progress.csv
+
+4️⃣ MODELL 4 (Hybrid): ⭐⭐⭐ BESTE CHANCEN
+   - Kombiniert Modell 2 und 3
+   - Gewichtung abhängig vom Fortschritt
+   - Ausbalanciert und robust
+   - Datei: submission_model4_hybrid.csv
+
+VORSCHLAG:
+1. Submitte zuerst Modell 1 (zum Vergleich mit deiner aktuellen Baseline)
+2. Dann Modell 4 (beste Gesamtstrategie)
+3. Dann Modell 3 (als Alternative)
+4. Vergleiche die MAE-Scores auf Kaggle
+
+Nach dem ersten Feedback kannst du dann weiter optimieren!
+""")
+
+print("\n" + "="*80)
+print("✅ ALLE SUBMISSIONS BEREIT FÜR KAGGLE!")
+print("="*80)
+
+print("\n📁 Erstellte Dateien:")
+print("  - submission_model1_baseline.csv")
+print("  - submission_model2_soll_delay.csv")
+print("  - submission_model3_progress.csv  ⭐ EMPFOHLEN")
+print("  - submission_model4_hybrid.csv    ⭐⭐ BESTE WAHL")
