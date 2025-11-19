@@ -1,0 +1,268 @@
+# ============================================================================
+# ZELLE 1: IMPORTS UND DATEN LADEN
+# ============================================================================
+
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+print("="*80)
+print("LIEBHERR HACKATHON 2025 - BASELINE MODELL")
+print("="*80)
+
+# Daten laden
+df_clean = pd.read_csv('/kaggle/input/liebherr-hackathon-2025-finale/df_history_clean.csv')
+df_eval_public = pd.read_csv('/kaggle/input/liebherr-hackathon-2025-finale/df_eval_public_2025-11-03.csv')
+df_eval_private = pd.read_csv('/kaggle/input/liebherr-hackathon-2025-finale/df_eval_private_2025-11-03.csv')
+df_ids = pd.read_csv('/kaggle/input/liebherr-hackathon-2025-finale/df_IDs_for_eval_2025-11-03.csv')
+
+print(f"✓ df_clean geladen: {len(df_clean):,} Zeilen")
+print(f"✓ df_eval_public geladen: {len(df_eval_public):,} Zeilen")
+print(f"✓ df_eval_private geladen: {len(df_eval_private):,} Zeilen")
+print(f"✓ df_ids geladen: {len(df_ids):,} IDs für Prognose")
+
+# Datumsspalten konvertieren
+date_columns = [
+    'Auftragseingang', 'Auftragsende_SOLL', 'AFO_Start_SOLL', 'AFO_Ende_SOLL',
+    'AFO_Start_IST', 'AFO_Ende_IST', 'Auftragsende_IST'
+]
+
+for col in date_columns:
+    if col in df_clean.columns:
+        df_clean[col] = pd.to_datetime(df_clean[col], errors='coerce')
+
+print("✓ Datumsspalten konvertiert\n")
+
+
+# ============================================================================
+# ZELLE 2: LEARNING - MEDIAN-DAUER (OPTIMIERT / VEKTORISIERT)
+# ============================================================================
+
+print("="*80)
+print("LEARNING: MEDIAN-DAUER IN ARBEITSSTUNDEN PRO BAUTEIL")
+print("="*80)
+
+# 1. Daten vorbereiten (Pivotieren ist schneller als Loop)
+print("\n1. Identifiziere Start (Info) und Ende (End) pro Auftrag...")
+
+relevant_steps = df_clean[
+    (df_clean['Arbeitsschritt'].isin([1, 999])) & 
+    (df_clean['AFO_Start_IST'].notna()) & 
+    (df_clean['AFO_Ende_IST'].notna())
+].copy()
+
+# Sicherstellen, dass es datetime ist
+relevant_steps['AFO_Start_IST'] = pd.to_datetime(relevant_steps['AFO_Start_IST'])
+relevant_steps['AFO_Ende_IST'] = pd.to_datetime(relevant_steps['AFO_Ende_IST'])
+
+# Pivot: Eine Zeile pro Auftrag mit Start und Ende
+df_pivot = relevant_steps.pivot_table(
+    index=['AuftragsID', 'BauteilID', 'Bauteilbezeichnung'], 
+    columns='Arbeitsschritt', 
+    values=['AFO_Start_IST', 'AFO_Ende_IST'],
+    aggfunc='first'
+)
+
+# Spaltennamen bereinigen
+df_pivot.columns = [f'{col[0]}_{col[1]}' for col in df_pivot.columns]
+
+# Nur Aufträge mit BEIDES (Start bei 1, Ende bei 999)
+df_complete = df_pivot.dropna(subset=['AFO_Start_IST_1', 'AFO_Ende_IST_999']).reset_index()
+print(f"✓ {len(df_complete):,} komplette Aufträge gefunden")
+
+# 2. Berechnung der Arbeitsstunden (Vektorisiert mit NumPy)
+print("\n2. Berechne Arbeitsstunden (Mo-Fr, 8h/Tag)...")
+
+# Start und Ende als Datum extrahieren
+starts = df_complete['AFO_Start_IST_1'].values.astype('datetime64[D]')
+ends = df_complete['AFO_Ende_IST_999'].values.astype('datetime64[D]')
+
+# Berechne Werktage (Mo-Fr) zwischen Start und Ende
+# np.busday_count: zählt business days (Mo-Fr)
+# HINWEIS: Feiertage werden hier als normale Arbeitstage gezählt (wie in der Aufgabe)
+werktage = np.busday_count(starts, ends)
+
+# Werktage * 8 Stunden = Arbeitsstunden
+df_complete['Dauer_Arbeitsstunden'] = werktage * 8.0
+
+# Entferne negative oder Null-Dauern
+df_complete = df_complete[df_complete['Dauer_Arbeitsstunden'] > 0]
+print(f"✓ Arbeitsstunden berechnet für {len(df_complete):,} Aufträge")
+
+# 3. Median pro Bauteil berechnen
+print("\n3. Berechne Median pro BauteilID...")
+
+median_pro_bauteil = df_complete.groupby(['BauteilID', 'Bauteilbezeichnung'])['Dauer_Arbeitsstunden'].agg([
+    ('Anzahl_Aufträge', 'count'),
+    ('Median_Arbeitsstunden', 'median'),
+    ('Mean_Arbeitsstunden', 'mean'),
+    ('Min_Arbeitsstunden', 'min'),
+    ('Max_Arbeitsstunden', 'max'),
+    ('Std_Arbeitsstunden', 'std')
+]).reset_index()
+
+print("\n" + "="*80)
+print("📊 MEDIAN-DAUER IN ARBEITSSTUNDEN PRO BAUTEIL")
+print("="*80)
+
+for _, row in median_pro_bauteil.iterrows():
+    print(f"\n{row['Bauteilbezeichnung']} (BauteilID={int(row['BauteilID'])}):")
+    print(f"  Anzahl Aufträge:       {int(row['Anzahl_Aufträge']):>10,}")
+    print(f"  Median Arbeitsstunden: {row['Median_Arbeitsstunden']:>10.1f} h ({row['Median_Arbeitsstunden']/8:.1f} Arbeitstage)")
+    print(f"  Mean Arbeitsstunden:   {row['Mean_Arbeitsstunden']:>10.1f} h ({row['Mean_Arbeitsstunden']/8:.1f} Arbeitstage)")
+    print(f"  Std Arbeitsstunden:    {row['Std_Arbeitsstunden']:>10.1f} h")
+
+# Dictionary für Baseline
+median_arbeitsstunden_dict = median_pro_bauteil.set_index('BauteilID')['Median_Arbeitsstunden'].to_dict()
+
+print("\n" + "="*80)
+print("✅ LEARNING ABGESCHLOSSEN")
+print("="*80)
+
+
+# ============================================================================
+# ZELLE 3: BASELINE PROGNOSE ERSTELLEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("BASELINE PROGNOSE: FERTIGSTELLUNGSDATUM VORHERSAGEN")
+print("="*80)
+
+# Stichtag: 01.03.2024 14:30
+stichtag = pd.Timestamp('2024-03-01 14:30:00')
+
+print(f"\nStichtag: {stichtag}")
+print(f"Erstelle Prognosen für {len(df_ids):,} Aufträge...\n")
+
+# Hilfsfunktion: Addiere Arbeitsstunden zu einem Startdatum
+def add_business_hours(start_dt, hours):
+    """
+    Addiert Arbeitsstunden zu einem Startdatum.
+    Arbeitszeit: Mo-Fr, 07:00-15:00 (8 Stunden/Tag)
+    """
+    if pd.isna(start_dt):
+        start_dt = stichtag
+    
+    # Anzahl volle Arbeitstage
+    full_days = int(hours // 8)
+    remaining_hours = hours % 8
+    
+    # Start bei 07:00 des Starttags normalisieren
+    current = pd.Timestamp(start_dt.date()) + pd.Timedelta(hours=7)
+    
+    # Addiere volle Arbeitstage (nur Mo-Fr)
+    business_days_added = 0
+    while business_days_added < full_days:
+        current += pd.Timedelta(days=1)
+        # Prüfe ob Wochentag (0=Mo, 6=So)
+        if current.weekday() < 5:  # Mo-Fr
+            business_days_added += 1
+    
+    # Addiere restliche Stunden
+    if remaining_hours > 0:
+        current += pd.Timedelta(hours=remaining_hours)
+        # Falls nach 15:00, springe zum nächsten Arbeitstag 07:00
+        if current.hour >= 15:
+            current = pd.Timestamp(current.date()) + pd.Timedelta(days=1, hours=7)
+            # Falls Wochenende, zum Montag
+            while current.weekday() >= 5:
+                current += pd.Timedelta(days=1)
+    
+    return current
+
+# Prognosen erstellen
+predictions = []
+
+# Fallback: Median über alle Bauteile
+fallback_median = df_complete['Dauer_Arbeitsstunden'].median()
+
+for auftrag_id in df_ids['AuftragsID']:
+    # Finde Auftragsinformationen
+    auftrag_info = df_clean[df_clean['AuftragsID'] == auftrag_id]
+    
+    if len(auftrag_info) > 0:
+        bauteil_id = auftrag_info.iloc[0]['BauteilID']
+        
+        # Finde Info-Zeile (Start)
+        info_row = auftrag_info[auftrag_info['Arbeitsschritt'] == 1]
+        
+        if len(info_row) > 0:
+            start_zeit = info_row.iloc[0]['AFO_Start_IST']
+        else:
+            start_zeit = stichtag
+        
+        # Hole Median für dieses Bauteil
+        if bauteil_id in median_arbeitsstunden_dict:
+            median_stunden = median_arbeitsstunden_dict[bauteil_id]
+        else:
+            median_stunden = fallback_median
+    else:
+        # Auftrag nicht in df_clean
+        start_zeit = stichtag
+        median_stunden = fallback_median
+    
+    # Berechne voraussichtliches Ende
+    predicted_end = add_business_hours(start_zeit, median_stunden)
+    
+    predictions.append({
+        'AuftragsID': auftrag_id,
+        'Auftragsende_PREDICTED': predicted_end.date()
+    })
+
+df_solution = pd.DataFrame(predictions)
+print(f"✓ Prognosen erstellt für {len(df_solution):,} Aufträge")
+
+# ID-Spalte hinzufügen (für Kaggle)
+df_solution['ID'] = np.arange(1, len(df_solution) + 1)
+
+# Spaltenreihenfolge und Format
+df_solution = df_solution[['ID', 'AuftragsID', 'Auftragsende_PREDICTED']]
+df_solution['Auftragsende_PREDICTED'] = pd.to_datetime(df_solution['Auftragsende_PREDICTED']).dt.strftime('%Y-%m-%d')
+
+print("\n" + "="*80)
+print("✅ BASELINE PROGNOSE FERTIG")
+print("="*80)
+
+print(f"\nErste 10 Prognosen:")
+print(df_solution.head(10))
+
+print(f"\n📊 Prognose-Statistik:")
+print(f"  Anzahl: {len(df_solution):,}")
+print(f"  Fehlende Werte: {df_solution.isnull().sum().sum()}")
+print(f"  Duplikate: {df_solution['AuftragsID'].duplicated().sum()}")
+
+
+# ============================================================================
+# ZELLE 4: SUBMISSION-DATEI ERSTELLEN
+# ============================================================================
+
+print("\n" + "="*80)
+print("SUBMISSION-DATEI ERSTELLEN")
+print("="*80)
+
+# Validierung vor dem Speichern
+print("\n✓ Validierung:")
+print(f"  1. Alle IDs vorhanden? {len(df_solution) == len(df_ids)}")
+print(f"  2. Spalten korrekt? {list(df_solution.columns) == ['ID', 'AuftragsID', 'Auftragsende_PREDICTED']}")
+print(f"  3. Keine NaN? {df_solution.isnull().sum().sum() == 0}")
+# Datumsformat prüfen (muss YYYY-MM-DD sein)
+date_pattern = r'^\d{4}-\d{2}-\d{2}$'
+print(f"  4. Datumsformat? {df_solution['Auftragsende_PREDICTED'].str.match(date_pattern).all()}")
+
+# Speichern
+output_file = 'submission_baseline.csv'
+df_solution.to_csv(output_file, index=False)
+
+print(f"\n✅ Submission gespeichert: {output_file}")
+print(f"   Format: CSV")
+print(f"   Separator: ,")
+print(f"   Zeilen: {len(df_solution):,}")
+print(f"   Spalten: ID, AuftragsID, Auftragsende_PREDICTED")
+
+print("\n" + "="*80)
+print("🎯 BEREIT FÜR KAGGLE-ABGABE!")
+print("="*80)
+print(f"\nLetzte 5 Zeilen zur Kontrolle:")
+print(df_solution.tail())
