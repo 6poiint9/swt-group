@@ -1,0 +1,26 @@
+import pandas as pd
+import numpy as np
+
+# Lade Daten
+df_ids = pd.read_csv('df_IDs_for_eval_2025-11-03.csv')
+df_eval_public = pd.read_csv('df_eval_public_2025-11-03.csv')
+df_eval_private = pd.read_csv('df_eval_private_2025-11-03.csv')
+
+# Kombiniere eval Daten
+df_eval = pd.concat([df_eval_public, df_eval_private])
+
+# Merge mit IDs
+df_submission = df_ids.merge(df_eval[['AuftragsID', 'Auftragsende_SOLL']], on='AuftragsID')
+
+# Baseline: Verwende einfach Auftragsende_SOLL als Prediction
+df_submission['Auftragsende_PREDICTED'] = pd.to_datetime(
+    df_submission['Auftragsende_SOLL']
+).dt.strftime('%Y-%m-%d')
+
+# Füge ID hinzu
+df_submission = df_submission[['AuftragsID', 'Auftragsende_PREDICTED']]
+df_submission.insert(0, 'ID', np.arange(1, len(df_submission) + 1))
+
+# Speichern
+df_submission.to_csv('baseline_submission.csv', index=False)
+print("✅ Baseline erstellt!")
